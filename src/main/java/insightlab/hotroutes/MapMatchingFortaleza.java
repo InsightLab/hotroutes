@@ -37,18 +37,18 @@ public class MapMatchingFortaleza {
 			Map<Long, List<GPXEntry>> mapIdToTrajectories = TrajectoryReader
 					.readFromFile("/Users/liviaalmada/Documents/map_matching/taxi_hot_10_5min_ordered.csv");
 			Map<Long, MatchResult> mapIdToMatchResult = TrajectoryMapMatching.runMapMatching(mapMatching, mapIdToTrajectories);
-			TrajectoryMapMatching.saveMapMatchingEdges(mapIdToMatchResult,
+			TrajectoryMapMatching.getInstance().saveMapMatchingEdges(mapIdToMatchResult,
 					"/Users/liviaalmada/Documents/map_matching/taxi_hot_10_5min_ordered_edges.csv", hopper);			
 			mapIdToTrajectories = TrajectoryReader
 					.readFromFile("/Users/liviaalmada/Documents/map_matching/taxi_hot_10_10min_ordered.csv");
 			mapIdToMatchResult = TrajectoryMapMatching.runMapMatching(mapMatching, mapIdToTrajectories);
-			TrajectoryMapMatching.saveMapMatchingEdges(mapIdToMatchResult,
+			TrajectoryMapMatching.getInstance().saveMapMatchingEdges(mapIdToMatchResult,
 					"/Users/liviaalmada/Documents/map_matching/taxi_hot_10_10min_ordered_edges.csv", hopper);
 			
 			mapIdToTrajectories = TrajectoryReader
 					.readFromFile("/Users/liviaalmada/Documents/map_matching/taxi_hot_10_60min_ordered.csv");
 			mapIdToMatchResult = TrajectoryMapMatching.runMapMatching(mapMatching, mapIdToTrajectories);
-			TrajectoryMapMatching.saveMapMatchingEdges(mapIdToMatchResult,
+			TrajectoryMapMatching.getInstance().saveMapMatchingEdges(mapIdToMatchResult,
 					"/Users/liviaalmada/Documents/map_matching/taxi_hot_10_60min_ordered_edges.csv", hopper);
 
 		} catch (IOException e) {
