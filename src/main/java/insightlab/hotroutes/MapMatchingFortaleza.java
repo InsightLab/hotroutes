@@ -35,21 +35,16 @@ public class MapMatchingFortaleza {
 		try {
 
 			Map<Long, List<GPXEntry>> mapIdToTrajectories = TrajectoryReader
-					.readFromFile("/Users/liviaalmada/Documents/map_matching/taxi_hot_10_5min_ordered.csv");
-			Map<Long, MatchResult> mapIdToMatchResult = TrajectoryMapMatching.runMapMatching(mapMatching, mapIdToTrajectories);
-			TrajectoryMapMatching.getInstance().saveMapMatchingEdges(mapIdToMatchResult,
-					"/Users/liviaalmada/Documents/map_matching/taxi_hot_10_5min_ordered_edges.csv", hopper);			
-			mapIdToTrajectories = TrajectoryReader
-					.readFromFile("/Users/liviaalmada/Documents/map_matching/taxi_hot_10_10min_ordered.csv");
-			mapIdToMatchResult = TrajectoryMapMatching.runMapMatching(mapMatching, mapIdToTrajectories);
-			TrajectoryMapMatching.getInstance().saveMapMatchingEdges(mapIdToMatchResult,
-					"/Users/liviaalmada/Documents/map_matching/taxi_hot_10_10min_ordered_edges.csv", hopper);
+					.readFromFile("/Users/liviaalmada/Documents/map_matching/taxi_hot_10_60min.csv");
+			Map<Long, MatchResult> mapIdToMatchResult = TrajectoryMapMatching.getInstance().runMapMatching(mapMatching, mapIdToTrajectories);
+		
+			TrajectoryMapMatching.getInstance().saveMapMatchingPoints(mapIdToMatchResult,
+					"/Users/liviaalmada/Documents/map_matching/taxi_hot_10_60min_trips.csv", hopper);
 			
-			mapIdToTrajectories = TrajectoryReader
-					.readFromFile("/Users/liviaalmada/Documents/map_matching/taxi_hot_10_60min_ordered.csv");
-			mapIdToMatchResult = TrajectoryMapMatching.runMapMatching(mapMatching, mapIdToTrajectories);
-			TrajectoryMapMatching.getInstance().saveMapMatchingEdges(mapIdToMatchResult,
-					"/Users/liviaalmada/Documents/map_matching/taxi_hot_10_60min_ordered_edges.csv", hopper);
+			
+			TrajectoryMapMatching.getInstance().saveMapMatchingEdgesSpeed(mapIdToMatchResult,
+					"/Users/liviaalmada/Documents/map_matching/taxi_hot_10_60min_trips_speed.csv", hopper);
+			
 
 		} catch (IOException e) {
 			e.printStackTrace();
