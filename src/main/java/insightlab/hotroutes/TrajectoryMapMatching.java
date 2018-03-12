@@ -22,10 +22,8 @@ import com.graphhopper.routing.weighting.FastestWeighting;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.NodeAccess;
-import com.graphhopper.util.EdgeExplorer;
 import com.graphhopper.util.GPXEntry;
 import com.graphhopper.util.Parameters;
-import com.vividsolutions.jts.index.strtree.GeometryItemDistance;
 
 public class TrajectoryMapMatching {
 
@@ -37,7 +35,7 @@ public class TrajectoryMapMatching {
 		return instance;
 	}
 
-	public static Map<Long, MatchResult> runMapMatching(MapMatching mapMatching, Map<Long, List<GPXEntry>> map) {
+	public Map<Long, MatchResult> runMapMatching(MapMatching mapMatching, Map<Long, List<GPXEntry>> map) {
 		Map<Long, MatchResult> mapMatchResult = new TreeMap<Long, MatchResult>();
 		for (Entry<Long, List<GPXEntry>> trajectory : map.entrySet()) {
 			try {
@@ -68,9 +66,7 @@ public class TrajectoryMapMatching {
 					if (countPointsEdge > 1 && first == null) {
 						first = edgeMatch.getGpxExtensions().get(0);
 						GPXExtension next = edgeMatch.getGpxExtensions().get(countPointsEdge - 1);
-						// Teste velocidade na aresta
-						System.out.println(edgeMatch.getEdgeState().getEdge());
-						System.out.println(getSpeedMS(hopper, first, next));
+						
 						first = next;
 					} else if (countPointsEdge == 0) {
 						edgesToFill.add(edgeMatch);
@@ -149,8 +145,9 @@ public class TrajectoryMapMatching {
 
 		FileWriter writer = new FileWriter(new File(filePath));
 		StringBuilder builder = new StringBuilder();
+		
 		try {
-			builder.append("id;latitude;longitude;timestamp;speed;edge_id;osm_id\n");
+			builder.append("id;latitude;longitude;timestamp;edge_id;osm_id\n");
 
 			for (Entry<Long, MatchResult> mapEntry : mapMatchResult.entrySet()) {
 				GPXExtension first = null;
@@ -173,13 +170,75 @@ public class TrajectoryMapMatching {
 
 	}
 
-	public void saveMapMatchingSegments(Map<Long, MatchResult> mapMatchResult, String filePath, MyGraphHopper hopper)
-			throws IOException {
+	public void saveMapMatchingSegmentsWithoutEmptyEdges(Map<Long, MatchResult> mapMatchResult, String filePath,
+			MyGraphHopper hopper) throws IOException {
+
+		FileWriter writer = new FileWriter(new File(filePath));
+		StringBuilder builder = new StringBuilder();
+		EdgeMatch previousEdge = null;
+		double speed;
+
+		try {
+			builder.append("trajId;ledgeId;timestamp;speed\n");
+
+			// iterate over all trajectories
+			for (Entry<Long, MatchResult> mapEntry : mapMatchResult.entrySet()) {
+				GPXExtension previousGPS = null;
+				Long trajId = mapEntry.getKey();// output traj_id
+				
+				// for each edge in trajectory map-matching
+				for (EdgeMatch edgeMatch : mapEntry.getValue().getEdgeMatches()) {
+					
+					int edgeId = edgeMatch.getEdgeState().getEdge();// output edge_id
+					
+					if(edgeMatch.isEmpty()) {
+						previousGPS = null;
+					}
+					// iterate over points on the edge
+					for (GPXExtension gpsExtension : edgeMatch.getGpxExtensions()) {
+						if (previousGPS == null) {
+							previousGPS = gpsExtension;
+						} else if (previousEdge.equals(edgeMatch) || previousEdge.getEdgeState().getAdjNode() == edgeMatch.getEdgeState().getBaseNode()) {
+								speed = getSpeedMS(hopper, previousGPS, gpsExtension);
+								writeSegmentOutput(builder, trajId, edgeId, gpsExtension.getEntry().getTime(), speed);								
+						}
+						previousGPS = gpsExtension;
+						previousEdge = edgeMatch;
+					}
+				}
+			}
+
+			writer.write(builder.toString());
+			writer.flush();
+		} finally {
+			writer.close();
+		}
+
+	}
+
+	private void writeSegmentOutput(StringBuilder builder, Long trajId, int edgeId, long time, double speed) {
+		builder.append(trajId);
+		builder.append(";");
+
+		builder.append(edgeId);
+		builder.append(";");
+
+		builder.append(time);
+		builder.append(";");
+		
+		builder.append(speed);
+		
+		builder.append("\n");
+	}
+
+	//TODO refactoring
+	public void saveMapMatchingSegmentsWithEmpyEdges(Map<Long, MatchResult> mapMatchResult, String filePath,
+			MyGraphHopper hopper) throws IOException {
 		FileWriter writer = new FileWriter(new File(filePath));
 		StringBuilder builder = new StringBuilder();
 		List<EdgeMatch> edgesWithoutPoints = new ArrayList<EdgeMatch>();
 		EdgeMatch previousEdge = null;
-		double timestamp, timestamp2;
+		long timestamp, timestamp2;
 		double speed;
 
 		try {
@@ -208,7 +267,7 @@ public class TrajectoryMapMatching {
 										gpsExtension.getEntry().getTime(), speed);
 
 							} else {
-								
+
 								// line of previous point
 								speed = getSpeedMS(hopper, previousGPS, gpsExtension);
 
@@ -218,35 +277,32 @@ public class TrajectoryMapMatching {
 								hopper.getGraphHopperStorage().getNodeAccess().getLatitude(node);
 								hopper.getGraphHopperStorage().getNodeAccess().getLongitude(node);
 
-								double distance = getPath(hopper, previousGPS.getEntry().getLat(),
+								long distance = (long) getPath(hopper, previousGPS.getEntry().getLat(),
 										previousGPS.getEntry().getLon(),
 										hopper.getGraphHopperStorage().getNodeAccess().getLatitude(node),
 										hopper.getGraphHopperStorage().getNodeAccess().getLongitude(node)).getBest()
 												.getDistance();
-								double deltaTime = distance
-										/ speed;// time in milliseconds
-								
-								timestamp2 = timestamp + deltaTime;
-								writeSegmentOutput(trajId, edgeId, timestamp, timestamp2,
-										speed);
-								totalDelta+=deltaTime;
+								double deltaTime = distance / speed;// time in milliseconds
+
+								timestamp2 = timestamp + (long) deltaTime;
+								writeSegmentOutput(trajId, edgeId, timestamp, timestamp2, speed);
+								totalDelta += deltaTime;
 
 								// empty edges
 								if (!edgesWithoutPoints.isEmpty()) {
 									for (EdgeMatch empty : edgesWithoutPoints) {
-										distance = getPath(hopper, previousGPS.getEntry().getLat(),
+										distance = (long) getPath(hopper, previousGPS.getEntry().getLat(),
 												previousGPS.getEntry().getLon(),
 												hopper.getGraphHopperStorage().getNodeAccess()
 														.getLatitude(empty.getEdgeState().getAdjNode()),
 												hopper.getGraphHopperStorage().getNodeAccess()
 														.getLongitude(empty.getEdgeState().getAdjNode())).getBest()
 																.getDistance();
-										deltaTime = distance
-												/ speed;// time in milliseconds
-										
+										deltaTime = distance / speed;// time in milliseconds
+
 										writeSegmentOutput(trajId, edgeId, timestamp2, timestamp + deltaTime, speed);
-										timestamp2 = timestamp + deltaTime;
-										totalDelta+=deltaTime;
+										timestamp2 = timestamp + (long) deltaTime;
+										totalDelta += deltaTime;
 									}
 								}
 
@@ -255,17 +311,15 @@ public class TrajectoryMapMatching {
 								hopper.getGraphHopperStorage().getNodeAccess().getLatitude(node);
 								hopper.getGraphHopperStorage().getNodeAccess().getLongitude(node);
 
-								distance = getPath(hopper, 	hopper.getGraphHopperStorage().getNodeAccess().getLatitude(node),
-										hopper.getGraphHopperStorage().getNodeAccess().getLongitude(node), 
-										gpsExtension.getEntry().getLat(),
-										gpsExtension.getEntry().getLon()).getBest()
+								distance = (long) getPath(hopper,
+										hopper.getGraphHopperStorage().getNodeAccess().getLatitude(node),
+										hopper.getGraphHopperStorage().getNodeAccess().getLongitude(node),
+										gpsExtension.getEntry().getLat(), gpsExtension.getEntry().getLon()).getBest()
 												.getDistance();
-								deltaTime = distance
-										/ speed;// time in milliseconds
-								
-								totalDelta+=deltaTime;
+								deltaTime = distance / speed;// time in milliseconds
+
+								totalDelta += deltaTime;
 								writeSegmentOutput(trajId, edgeId, timestamp2, timestamp + deltaTime, speed);
-								
 
 							}
 
@@ -303,12 +357,6 @@ public class TrajectoryMapMatching {
 
 		builder.append(next.getEntry().getTime());
 		builder.append(";");
-		if (first != next) {
-			double speed = getSpeedMS(hopper, first, next);
-			builder.append(speed);
-		}
-
-		builder.append(";");
 
 		int edge = edgeMatch.getEdgeState().getEdge();
 		builder.append(edge);
@@ -320,7 +368,7 @@ public class TrajectoryMapMatching {
 
 	private double getSpeedMS(MyGraphHopper hopper, GPXExtension from, GPXExtension to) {
 		GHResponse res = getPath(hopper, from, to);
-		return res.getBest().getDistance() / (to.getEntry().getTime() - from.getEntry().getTime());
+		return res.getBest().getDistance() / (to.getEntry().getTime() - from.getEntry().getTime())*1000;
 	}
 
 	private GHResponse getPath(MyGraphHopper hopper, GPXExtension from, GPXExtension to) {
@@ -355,9 +403,10 @@ public class TrajectoryMapMatching {
 
 			Map<Long, List<GPXEntry>> mapIdToTrajectories = TrajectoryReader
 					.readFromFile("/Users/liviaalmada/Documents/map_matching/taxi_hot_10_5min_ordered.csv");
-			Map<Long, MatchResult> mapIdToMatchResult = TrajectoryMapMatching.runMapMatching(mapMatching,
+			Map<Long, MatchResult> mapIdToMatchResult = TrajectoryMapMatching.getInstance().runMapMatching(mapMatching,
 					mapIdToTrajectories);
-			TrajectoryMapMatching.getInstance().saveMapMatchingSegments(mapIdToMatchResult, "teste.csv", hopper);
+			TrajectoryMapMatching.getInstance().saveMapMatchingSegmentsWithoutEmptyEdges(mapIdToMatchResult, "teste5.csv",
+					hopper);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
