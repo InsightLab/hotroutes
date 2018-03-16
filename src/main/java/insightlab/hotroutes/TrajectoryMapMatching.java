@@ -22,7 +22,6 @@ import com.graphhopper.routing.weighting.FastestWeighting;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.NodeAccess;
-import com.graphhopper.util.GPXEntry;
 import com.graphhopper.util.Parameters;
 
 public class TrajectoryMapMatching {
@@ -35,11 +34,11 @@ public class TrajectoryMapMatching {
 		return instance;
 	}
 
-	public Map<Long, MatchResult> runMapMatching(MapMatching mapMatching, Map<Long, List<GPXEntry>> map) {
+	public Map<Long, MatchResult> runMapMatching(MapMatching mapMatching, Map<Long, Trajectory> mapIdToTrajectories) {
 		Map<Long, MatchResult> mapMatchResult = new TreeMap<Long, MatchResult>();
-		for (Entry<Long, List<GPXEntry>> trajectory : map.entrySet()) {
+		for (Entry<Long, Trajectory> trajectory : mapIdToTrajectories.entrySet()) {
 			try {
-				MatchResult matchResult = mapMatching.doWork(trajectory.getValue());
+				MatchResult matchResult = mapMatching.doWork(trajectory.getValue().getPoints());
 				mapMatchResult.put(trajectory.getKey(), matchResult);
 			} catch (Exception e) {
 				System.err.println("Não foi possível realizar o map-matching para trajetória:" + trajectory.getKey());
@@ -401,12 +400,12 @@ public class TrajectoryMapMatching {
 		MapMatching mapMatching = new MapMatching(hopper, algoOptions);
 		try {
 
-			Map<Long, List<GPXEntry>> mapIdToTrajectories = TrajectoryReader
+			Map<Long, Trajectory> mapIdToTrajectories = TrajectoryReader
 					.readFromFile("/Users/liviaalmada/Documents/map_matching/taxi_hot_10_5min_ordered.csv");
-			Map<Long, MatchResult> mapIdToMatchResult = TrajectoryMapMatching.getInstance().runMapMatching(mapMatching,
-					mapIdToTrajectories);
-			TrajectoryMapMatching.getInstance().saveMapMatchingSegmentsWithoutEmptyEdges(mapIdToMatchResult, "teste5.csv",
-					hopper);
+//			Map<Long, MatchResult> mapIdToMatchResult = TrajectoryMapMatching.getInstance().runMapMatching(mapMatching,
+//					mapIdToTrajectories);
+//			TrajectoryMapMatching.getInstance().saveMapMatchingSegmentsWithoutEmptyEdges(mapIdToMatchResult, "teste5.csv",
+//					hopper);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
