@@ -30,7 +30,6 @@ public class TrajectoryReader {
 		long previousTraj = -1;
 		long taxiId = -1;
 		long trajId = -1;
-
 		long time = -1;
 		double latitude = -1;
 		double longitude = -1;
@@ -45,11 +44,11 @@ public class TrajectoryReader {
 			time = Long.parseLong(split[TIME_IDX]);
 			GPXEntry gpxEntry = new GPXEntry(latitude, longitude, time);
 
-			if (trajId == -1) {
-				previousTraj = Long.parseLong(split[TAXI_ID_IDX]);
+			if (previousTraj == -1) {
+				previousTraj = trajId;
 			} else if (previousTraj != trajId) {
-				trajectoriesMap.put(trajId, new Trajectory(taxiId,trajId,pointsList));
-				previousTraj = -1;
+				trajectoriesMap.put(previousTraj, new Trajectory(taxiId,previousTraj,pointsList));
+				previousTraj = trajId;
 				pointsList = new ArrayList<GPXEntry>();
 			} 
 			pointsList.add(gpxEntry);

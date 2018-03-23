@@ -40,7 +40,7 @@ public class MapMatchingFortaleza {
 					"/Users/liviaalmada/Documents/trajectory_traffic_prediction/livia-data-cleaner/fixed_taxi_hot_day_12122015_ordem_matching.csv", hopper);
 			
 			
-			TrajectoryMapMatching.getInstance().saveMapMatchingEdgesSpeed(mapIdToMatchResult,
+			TrajectoryMapMatching.getInstance().saveMapMatchingSegmentsWithoutEmptyEdges(mapIdToMatchResult,
 					"/Users/liviaalmada/Documents/trajectory_traffic_prediction/livia-data-cleaner/fixed_taxi_hot_day_12122015_ordem_matching_edges.csv", hopper);
 			
 
